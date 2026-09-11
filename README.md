@@ -50,6 +50,7 @@ A few decisions that are not obvious and are easy to get wrong:
 | `src/auth-provider.ts` | The OAuth 2.1 server this connector runs *for Claude* |
 | `src/idp.ts` | Federated login used to establish who is calling |
 | `docs/terms.html` | Terms and Conditions (published via GitHub Pages) |
+| `STATUS.md` | Where this stands and how to resume |
 
 Two separate OAuth flows meet in this codebase, which is the main thing to hold in your head:
 
@@ -64,7 +65,12 @@ See `.env.example`. Nothing secret is committed; secrets come from Secret Manage
 
 ## Status
 
-Early. Registered against Epic's sandbox and not yet pointed at a production health system.
+**Paused 2026-09-10.** Deployed to Cloud Run and working; the Epic sandbox sign-in that proves the
+token exchange, refresh tokens, encryption and FHIR reads has not been run yet. Not pointed at a
+production health system: the target organisation has not distributed the client id.
+
+**See [STATUS.md](STATUS.md)** for exactly where things stand, the single next action, what blocks
+real data, and the traps that already cost time.
 
 ## License
 
