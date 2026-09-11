@@ -73,12 +73,29 @@ export async function exchangeIdpCode(code: string): Promise<FederatedIdentity> 
     throw new Error("id_token missing sub/email");
   }
 
-  // Enforce the org domain gate. For Google we prefer the verified `hd`
-  // (hosted-domain) claim; fall back to the email domain for other IdPs.
+  // Who is allowed in. An explicit email allowlist wins when one is set: this
+  // server reads a child's medical records, and "anyone at this domain" is a
+  // far weaker promise than "these specific people". The domain gate stays as
+  // a fallback for org deployments.
   const domain = payload.hd ?? payload.email.split("@")[1];
-  if (domain !== config.idp.allowedDomain) {
+  const email = payload.email.toLowerCase();
+  const { allowedEmails, allowedDomain } = config.idp;
+
+  if (allowedEmails.length > 0) {
+    if (!allowedEmails.includes(email)) {
+      throw new IdentityNotAllowedError(`Login restricted to specific accounts (got ${email})`);
+    }
+  } else if (allowedDomain) {
+    if (domain !== allowedDomain) {
+      throw new IdentityNotAllowedError(
+        `Login restricted to @${allowedDomain} accounts (got ${domain ?? "none"})`,
+      );
+    }
+  } else {
+    // Refuse to run wide open rather than silently admitting the whole
+    // internet to a medical record.
     throw new IdentityNotAllowedError(
-      `Login restricted to @${config.idp.allowedDomain} accounts (got ${domain ?? "none"})`,
+      "No ALLOWED_EMAILS or ALLOWED_DOMAIN configured; refusing all logins.",
     );
   }
 

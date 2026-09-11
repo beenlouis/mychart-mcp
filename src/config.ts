@@ -15,10 +15,14 @@ const RawEnv = z.object({
   // --- Identity provider (Google by default; see src/idp.ts to swap) ---
   OIDC_CLIENT_ID: z.string().min(1),
   OIDC_CLIENT_SECRET: z.string().min(1),
-  // Only allow logins from this email domain. For Google this is checked
-  // against the id_token "hd" (hosted-domain) claim; for other IdPs, against
-  // the email domain. Set to your org's domain, e.g. "example.org".
-  ALLOWED_DOMAIN: z.string().min(1),
+  // WHO may connect this server. Prefer ALLOWED_EMAILS: this connector reads a
+  // child's medical records, so an explicit allowlist of individuals is the
+  // right gate, not "anyone who happens to hold an address at this domain".
+  // Comma-separated, case-insensitive.
+  ALLOWED_EMAILS: z.string().optional(),
+  // Fallback org-domain gate, checked against Google's verified "hd" claim.
+  // Only consulted when ALLOWED_EMAILS is empty.
+  ALLOWED_DOMAIN: z.string().optional(),
 
   // --- Storage ---
   GCP_PROJECT_ID: z.string().min(1),
@@ -94,6 +98,10 @@ export const config = {
   idp: {
     clientId: env.OIDC_CLIENT_ID,
     clientSecret: env.OIDC_CLIENT_SECRET,
+    allowedEmails: (env.ALLOWED_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
     allowedDomain: env.ALLOWED_DOMAIN,
     /** Where the IdP redirects back to us after user consent. */
     get redirectUri() {
