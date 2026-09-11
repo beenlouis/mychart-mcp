@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+# never commit any service-account keys or secrets
+*.json.key
+service-account*.json
+gcp-key*.json
+.DS_Store

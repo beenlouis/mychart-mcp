@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms and Conditions — MyChart Care Record Connector</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5a5f66;
+    --rule: #e2e5e9;
+    --accent: #1f5f8b;
+    --card: #f6f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c; --fg: #e8eaed; --muted: #a2a9b3;
+      --rule: #2c3037; --accent: #7fb3d5; --card: #1e2128;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 .35rem; }
+  h2 {
+    font-size: 1.1rem; margin: 2.25rem 0 .6rem; padding-top: 1.1rem;
+    border-top: 1px solid var(--rule);
+  }
+  h2:first-of-type { border-top: 0; }
+  .meta { color: var(--muted); font-size: .9rem; margin: 0 0 1.75rem; }
+  p, li { margin: .6rem 0; }
+  ul { padding-left: 1.25rem; }
+  code {
+    background: var(--card); padding: .1rem .35rem; border-radius: 4px;
+    font-size: .9em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .callout {
+    background: var(--card); border-left: 3px solid var(--accent);
+    padding: .9rem 1.1rem; border-radius: 0 6px 6px 0; margin: 1.25rem 0;
+  }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  a { color: var(--accent); }
+  footer {
+    margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+    color: var(--muted); font-size: .875rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Terms and Conditions</h1>
+<p class="meta">MyChart Care Record Connector &middot; Effective September 10, 2026</p>
+
+<div class="callout">
+  <p><strong>This is a personal, family-operated tool.</strong> It is built and run by an
+  individual, not a company, and it exists so that a parent can keep an organized copy of their
+  own family's medical records. It is not a commercial product, and nothing about it is funded by
+  advertising or by selling anyone's data.</p>
+</div>
+
+<h2>1. Who operates this application</h2>
+<p>This application is operated by Ben Lewis, an individual and independent developer. There is no
+company, no staff, and no investors. The source code is available publicly so that anyone,
+including the health systems whose data it reads, can see exactly what it does.</p>
+
+<h2>2. What it does</h2>
+<p>The application connects to a patient portal (MyChart) using that portal's official, patient
+authorized API, and copies the patient's own health records into a private record kept by the
+patient's family. Its purpose is care coordination: keeping test results, reports and appointments
+organized and in one place, so they can be reviewed and shared with the care team.</p>
+<p>The application is <strong>read only</strong>. It cannot write to, change, or delete anything in
+your medical record, and it cannot send messages to your care team on your behalf.</p>
+
+<h2>3. What data it accesses</h2>
+<p>Only what you approve during sign in, and only for the patient whose record you authorize. That
+includes:</p>
+<ul>
+  <li>Patient demographics, used to confirm whose record was opened</li>
+  <li>Laboratory results and other observations, including vitals and genomics</li>
+  <li>Diagnostic reports, including radiology and imaging reports</li>
+  <li>Clinical documents and their attachments, such as PDFs and scanned files</li>
+  <li>Appointments and scheduled procedures</li>
+</ul>
+<p>The application does not collect data about anyone other than the patient whose record you
+authorize, and it does not combine your record with data from any other source.</p>
+
+<h2>4. Where data is stored and for how long</h2>
+<p>Data is stored in two places: on servers operated by Google Cloud in the United States, and
+locally on the family's own computer. Data in transit is protected with TLS. The credential used
+to reach the patient portal is encrypted at rest using Google Cloud Key Management Service, and is
+never written in readable form.</p>
+<p>Data is kept <strong>indefinitely</strong>, because a medical history is only useful when it is
+complete. It is kept until the patient or their parent decides to delete it.</p>
+
+<h2>5. Deleting your data</h2>
+<p>You may have all stored data deleted at any time, for any reason, by asking. There is no
+retention period you have to wait out and no part of the record that is exempt.</p>
+<p>Disconnecting the application from your patient portal revokes its access going forward, but it
+does <strong>not</strong> by itself erase the records already saved. That is deliberate: the care
+history is meant to outlive any one login credential, and an accidental disconnect should not
+destroy years of records. Deletion happens when you ask for it.</p>
+
+<h2>6. Who else can see your data</h2>
+<p>No one has routine access to your data except you and the family members operating this
+application. There is no staff, no partners, no affiliates, and no researchers.</p>
+<p>There is one category you should understand clearly. This application is designed to make your
+records available to an <strong>AI assistant that you separately authorize</strong>, currently
+Claude, operated by Anthropic. When you ask that assistant a question about the records, the
+relevant records are sent to it so it can answer. That assistant is therefore an application that
+you authorize, and it processes your health data under its own provider's terms.</p>
+<p>You approve each such application individually when you connect it. You are not notified
+separately every single time a record is read, and the application keeps only a partial record of
+access, in the form of ordinary server logs.</p>
+
+<h2>7. What is never done with your data</h2>
+<ul>
+  <li>It is never sold, rented, or licensed to anyone, in any form</li>
+  <li>It is never used for advertising, to you or to anyone else</li>
+  <li>It is never used for research</li>
+  <li>It is never shared with data brokers, insurers, or employers</li>
+  <li>It is not sold in aggregated, generalized, or de-identified form either</li>
+</ul>
+<p>The data is used for one thing: providing the direct service described above to the family that
+operates the application.</p>
+
+<h2>8. You can get a copy of everything</h2>
+<p>You may request a complete copy of every record stored about you, in a readable format, at any
+time.</p>
+
+<h2>9. Legal status and HIPAA</h2>
+<p>This application is operated by an individual for personal family use. The operator is
+<strong>not</strong> a HIPAA covered entity and is <strong>not</strong> a business associate of any
+health system, and there is <strong>no</strong> business associate agreement in place with any
+health care organization.</p>
+<p>Health information you retrieve through a patient access API leaves the protection of HIPAA once
+it reaches an application you chose. That is true of any patient facing application, not just this
+one, and it is worth understanding before you connect anything to your health record.</p>
+
+<h2>10. This is not medical advice</h2>
+<div class="callout">
+  <p>This application organizes and displays information. It is not a medical device, it does not
+  diagnose, and nothing it produces is medical advice. It does not replace your doctors, your
+  nurses, or your own judgment.</p>
+  <p>Any AI generated summary can be wrong, incomplete, or misleading. Always confirm against the
+  original result in your patient portal and with your care team before acting on anything.</p>
+  <p><strong>In an emergency, call your care team or your local emergency number. Do not rely on
+  this application.</strong></p>
+</div>
+
+<h2>11. Availability</h2>
+<p>This is a personal project offered as is, with no warranty and no guarantee of availability,
+accuracy, or continued operation. It may stop working at any time, including because the health
+system changes or withdraws API access.</p>
+
+<h2>12. Changes to these terms</h2>
+<p>If these terms change materially, the change will be published at this address with a new
+effective date before it takes effect.</p>
+
+<h2>13. Contact</h2>
+<p>Questions, deletion requests, and requests for a copy of your data:
+<a href="mailto:ben.lewis@lewisconsultation.com">ben.lewis@lewisconsultation.com</a>.</p>
+
+<footer>
+  MyChart Care Record Connector. Epic, MyChart and FHIR are trademarks of their respective owners;
+  this application is not affiliated with or endorsed by Epic Systems Corporation or any health
+  system.
+</footer>
+
+</div>
+</body>
+</html>
