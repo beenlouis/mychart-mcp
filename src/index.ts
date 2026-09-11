@@ -10,7 +10,16 @@ import { logger } from "./logger.js";
 import { provider } from "./auth-provider.js";
 import { buildMcpServer } from "./mcp-server.js";
 import { exchangeIdpCode, IdentityNotAllowedError } from "./idp.js";
-import { consumePendingAuth, saveAuthCode, upsertUser } from "./store.js";
+import { buildAuthorizeUrl, createPkcePair, exchangeCode } from "./epic.js";
+import { encryptSecret } from "./crypto.js";
+import {
+  consumePendingAuth,
+  consumePendingEpicLink,
+  saveAuthCode,
+  saveEpicLink,
+  savePendingEpicLink,
+  upsertUser,
+} from "./store.js";
 
 const app = express();
 // Behind Cloud Run's reverse proxy: trust the first X-Forwarded-* hop so
@@ -103,6 +112,122 @@ app.get("/oauth/idp/callback", async (req: Request, res: Response) => {
 const bearer = requireBearerAuth({
   verifier: provider,
   resourceMetadataUrl: `${config.baseUrl}/.well-known/oauth-protected-resource`,
+});
+
+// ---- MyChart account linking ----
+//
+// Separate from the OAuth flow above. That one proves who is talking to this
+// connector; this one obtains permission to read a chart from Epic. A person
+// opens /epic/link in a browser, signs in to MyChart, and we store the
+// resulting refresh token (encrypted) against their user id.
+
+/**
+ * Start the link. Bearer-protected so we know WHOSE link this is: the Epic
+ * refresh token we end up with must be filed against a real user, never
+ * against an anonymous browser session.
+ */
+app.get("/epic/link", bearer, async (req: Request, res: Response) => {
+  const userId = (req as Request & { auth?: { extra?: { userId?: string } } }).auth?.extra?.userId;
+  if (!userId) {
+    res.status(401).type("text/plain").send("Unauthenticated.");
+    return;
+  }
+  try {
+    const { verifier, challenge } = createPkcePair();
+    const state = randomUUID();
+    await savePendingEpicLink(state, {
+      userId,
+      environment: config.epic.environment,
+      codeVerifier: verifier,
+    });
+    res.redirect(await buildAuthorizeUrl(state, challenge));
+  } catch (err) {
+    req.log.error({ err }, "Could not start MyChart link");
+    res.status(502).type("text/plain").send("Could not reach MyChart to start the link.");
+  }
+});
+
+/**
+ * Finish the link. Epic redirects here with ?code and our ?state. This URL
+ * must exactly match a redirect URI registered on the Epic app record.
+ */
+app.get("/epic/callback", async (req: Request, res: Response) => {
+  const { code, state, error, error_description: errorDescription } =
+    req.query as Record<string, string | undefined>;
+
+  const page = (title: string, body: string, status = 200) =>
+    res.status(status).type("text/html").send(
+      `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+        `<title>${title}</title>` +
+        `<body style="font:16px/1.6 -apple-system,system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1.25rem">` +
+        `<h1 style="font-size:1.3rem">${title}</h1>${body}</body>`,
+    );
+
+  if (error) {
+    // The person declined, or Epic refused. Say so plainly rather than
+    // pretending it was a server fault.
+    req.log.warn({ error, errorDescription }, "MyChart link denied");
+    page("MyChart link was not completed", `<p>${errorDescription ?? error}</p>`, 400);
+    return;
+  }
+  if (!code || !state) {
+    page("Missing authorization code", "<p>Start again from the link page.</p>", 400);
+    return;
+  }
+
+  // Single-use: a replayed callback finds nothing and cannot re-link.
+  const pending = await consumePendingEpicLink(state);
+  if (!pending) {
+    page(
+      "This link request expired",
+      "<p>Link requests are valid for 10 minutes and can only be used once. Please start again.</p>",
+      400,
+    );
+    return;
+  }
+
+  try {
+    const tokens = await exchangeCode(code, pending.codeVerifier);
+    if (!tokens.refreshToken) {
+      // Without a refresh token there is no unattended sync, which is the
+      // whole point. Fail loudly rather than storing a link that dies in an
+      // hour and looks like a mystery later.
+      throw new Error(
+        "MyChart did not return a refresh token. The Epic app record needs " +
+          "'Requires Persistent Access' enabled and the request must include the " +
+          "offline_access scope.",
+      );
+    }
+
+    await saveEpicLink({
+      userId: pending.userId,
+      environment: pending.environment,
+      fhirBaseUrl: config.epic.fhirBaseUrl,
+      refreshTokenEnc: await encryptSecret(tokens.refreshToken),
+      patientId: tokens.patientId,
+      scope: tokens.scope,
+    });
+
+    req.log.info(
+      { userId: pending.userId, env: pending.environment, hasPatient: !!tokens.patientId },
+      "MyChart link established",
+    );
+
+    page(
+      "MyChart is linked",
+      `<p>You can close this tab and go back to your conversation.</p>` +
+        (tokens.patientId
+          ? `<p style="color:#5a5f66">Linked chart: <code>${tokens.patientId}</code></p>`
+          : `<p style="color:#b23"><strong>Note:</strong> MyChart did not tell us which patient this token opens. Reads may fail.</p>`),
+    );
+  } catch (err) {
+    req.log.error({ err }, "MyChart link failed");
+    page(
+      "Could not finish linking MyChart",
+      `<p>${err instanceof Error ? err.message : String(err)}</p>`,
+      502,
+    );
+  }
 });
 
 app.post("/mcp", bearer, async (req: Request, res: Response) => {
