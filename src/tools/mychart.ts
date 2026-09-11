@@ -81,10 +81,19 @@ export function registerMyChartTools(server: McpServer): void {
       const userId = userIdFrom(extra);
       const link = await getEpicLink(userId, config.epic.environment);
       if (!link) {
+        // Mint the sign-in URL right here rather than only in mychart_link.
+        // Clients cache the tool list, so a newly added tool can be invisible
+        // for a while; this keeps linking possible using a tool that is
+        // already in every cached list.
+        const token = randomUUID();
+        await saveLinkToken(token, userId);
         return json({
           linked: false,
           environment: config.epic.environment,
-          hint: "Run the mychart_link tool to get a one-time sign-in URL.",
+          linkUrl: `${config.baseUrl}/epic/link?t=${token}`,
+          hint:
+            "Open linkUrl in a browser and sign in to MyChart. It is single-use and expires in " +
+            "15 minutes; re-run this tool for a fresh one.",
         });
       }
       // Actually exercise the credential. "A row exists" is not the same as
