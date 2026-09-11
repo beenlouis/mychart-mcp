@@ -74,7 +74,7 @@ done
 # lands on collections the app never writes to.
 PREFIX="${FIRESTORE_COLLECTION_PREFIX:-${SERVICE}_}"
 echo ">> Enabling Firestore TTL on expiresAt (this is slow; a few minutes)"
-for GROUP in "${PREFIX}refresh_tokens" "${PREFIX}auth_codes" "${PREFIX}pending_auth" "${PREFIX}pending_epic_links"; do
+for GROUP in "${PREFIX}refresh_tokens" "${PREFIX}auth_codes" "${PREFIX}pending_auth" "${PREFIX}pending_epic_links" "${PREFIX}link_tokens"; do
   echo "   ${GROUP}"
   gcloud firestore fields ttls update expiresAt \
     --collection-group="${GROUP}" --project="${PROJECT_ID}" --enable-ttl --quiet || \

@@ -37,8 +37,9 @@ export interface EpicSession {
   link: StoredEpicLink;
 }
 
-function linkUrl(): string {
-  return `${config.baseUrl}/epic/link`;
+/** A browser cannot open /epic/link unaided, so always route people via the tool. */
+function relinkHint(): string {
+  return "run the mychart_link tool to get a one-time sign-in URL";
 }
 
 export async function getEpicSession(userId: string): Promise<EpicSession> {
@@ -48,13 +49,13 @@ export async function getEpicSession(userId: string): Promise<EpicSession> {
   if (!link) {
     throw new EpicLinkRequiredError(
       `No MyChart account is linked for the ${env} environment. ` +
-        `Open ${linkUrl()} in a browser and sign in to MyChart to link one.`,
+        `To link one, ${relinkHint()}.`,
     );
   }
   if (link.invalidatedAt) {
     throw new EpicLinkRequiredError(
       `The MyChart link stopped working (${link.invalidReason ?? "unknown reason"}). ` +
-        `Re-link at ${linkUrl()}.`,
+        `To re-link, ${relinkHint()}.`,
     );
   }
 
@@ -76,7 +77,7 @@ export async function getEpicSession(userId: string): Promise<EpicSession> {
       );
       throw new EpicLinkRequiredError(
         `MyChart rejected the saved credential, which usually means access was revoked ` +
-          `or expired. Re-link at ${linkUrl()}.`,
+          `or expired. To re-link, ${relinkHint()}.`,
       );
     }
     throw err;
@@ -95,7 +96,7 @@ export async function getEpicSession(userId: string): Promise<EpicSession> {
   if (!patientId) {
     throw new EpicLinkRequiredError(
       `The MyChart link has no patient context, so there is no chart to read. ` +
-        `Re-link at ${linkUrl()} and make sure a patient is selected.`,
+        `To re-link, ${relinkHint()}, and make sure a patient is selected.`,
     );
   }
 

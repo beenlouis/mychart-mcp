@@ -35,6 +35,7 @@ const refreshTokens = db.collection(`${p}refresh_tokens`);
 const pendingAuth = db.collection(`${p}pending_auth`);
 const epicLinks = db.collection(`${p}epic_links`);
 const pendingEpicLinks = db.collection(`${p}pending_epic_links`);
+const linkTokens = db.collection(`${p}link_tokens`);
 
 // ---- OAuth clients (Dynamic Client Registration) ----
 
@@ -234,6 +235,43 @@ export async function invalidateEpicLink(
 
 export async function deleteEpicLink(userId: string, environment: string): Promise<void> {
   await epicLinks.doc(epicLinkId(userId, environment)).delete();
+}
+
+// ---- One-time link tokens ----
+//
+// /epic/link is opened in a BROWSER, which carries no MCP bearer token. So a
+// tool mints a short-lived single-use token, and the browser presents that
+// instead. This keeps the identity binding (we still know whose Epic token we
+// are about to store) without requiring the browser to be authenticated.
+
+export interface StoredLinkToken {
+  userId: string;
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+}
+
+const LINK_TOKEN_TTL_MS = 15 * 60 * 1000;
+
+export async function saveLinkToken(token: string, userId: string): Promise<void> {
+  const now = Date.now();
+  await linkTokens.doc(token).set({
+    userId,
+    createdAt: Timestamp.fromMillis(now),
+    expiresAt: Timestamp.fromMillis(now + LINK_TOKEN_TTL_MS),
+  });
+}
+
+/** Single-use: read and delete, so a leaked URL cannot be replayed. */
+export async function consumeLinkToken(token: string): Promise<string | undefined> {
+  const ref = linkTokens.doc(token);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return undefined;
+    const data = snap.data() as StoredLinkToken;
+    tx.delete(ref);
+    if (data.expiresAt.toMillis() < Date.now()) return undefined;
+    return data.userId;
+  });
 }
 
 // ---- Pending Epic link (PKCE verifier parked between authorize and callback) ----

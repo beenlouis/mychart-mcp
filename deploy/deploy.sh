@@ -30,7 +30,11 @@ gcloud run deploy "${SERVICE}" \
   --service-account "${SERVICE_ACCOUNT}" \
   --allow-unauthenticated \
   --cpu=1 --memory=512Mi --min-instances=0 --max-instances=4 \
-  --set-env-vars="NODE_ENV=production,PUBLIC_BASE_URL=${PUBLIC_BASE_URL},ALLOWED_EMAILS=${ALLOWED_EMAILS},GCP_PROJECT_ID=${PROJECT_ID},FIRESTORE_DATABASE_ID=(default),FIRESTORE_COLLECTION_PREFIX=${FIRESTORE_COLLECTION_PREFIX},OIDC_CLIENT_ID=${OIDC_CLIENT_ID},KMS_KEY_NAME=${KMS_KEY_NAME},EPIC_ENVIRONMENT=${EPIC_ENVIRONMENT},EPIC_FHIR_BASE_URL=${EPIC_FHIR_BASE_URL},EPIC_CLIENT_ID=${EPIC_CLIENT_ID}" \
+  `# ALLOWED_EMAILS is a comma-separated list and gcloud uses comma as the
+   # --set-env-vars delimiter, so switch the delimiter to @@ with the ^@@^
+   # prefix. Without this, gcloud parses each email as its own VAR=VALUE and
+   # fails with an unhelpful usage dump.` \
+  --set-env-vars="^@@^NODE_ENV=production@@PUBLIC_BASE_URL=${PUBLIC_BASE_URL}@@ALLOWED_EMAILS=${ALLOWED_EMAILS}@@GCP_PROJECT_ID=${PROJECT_ID}@@FIRESTORE_DATABASE_ID=(default)@@FIRESTORE_COLLECTION_PREFIX=${FIRESTORE_COLLECTION_PREFIX}@@OIDC_CLIENT_ID=${OIDC_CLIENT_ID}@@KMS_KEY_NAME=${KMS_KEY_NAME}@@EPIC_ENVIRONMENT=${EPIC_ENVIRONMENT}@@EPIC_FHIR_BASE_URL=${EPIC_FHIR_BASE_URL}@@EPIC_CLIENT_ID=${EPIC_CLIENT_ID}" \
   --set-secrets="OIDC_CLIENT_SECRET=oidc-client-secret:latest,JWT_SIGNING_SECRET=mychart-jwt-signing:latest,EPIC_CLIENT_SECRET=mychart-epic-client-secret:latest"
 
 echo ">> Deployed. Connector URL for Claude: ${PUBLIC_BASE_URL}/mcp"

@@ -13,6 +13,7 @@ import { exchangeIdpCode, IdentityNotAllowedError } from "./idp.js";
 import { buildAuthorizeUrl, createPkcePair, exchangeCode } from "./epic.js";
 import { encryptSecret } from "./crypto.js";
 import {
+  consumeLinkToken,
   consumePendingAuth,
   consumePendingEpicLink,
   saveAuthCode,
@@ -122,14 +123,25 @@ const bearer = requireBearerAuth({
 // resulting refresh token (encrypted) against their user id.
 
 /**
- * Start the link. Bearer-protected so we know WHOSE link this is: the Epic
- * refresh token we end up with must be filed against a real user, never
- * against an anonymous browser session.
+ * Start the link. This is opened in a BROWSER, which carries no MCP bearer
+ * token, so identity arrives as a single-use `?t=` token minted by a tool. The
+ * Epic refresh token we end up with must be filed against a real user, never
+ * against an anonymous browser session, and this preserves that binding
+ * without asking the browser to authenticate.
  */
-app.get("/epic/link", bearer, async (req: Request, res: Response) => {
-  const userId = (req as Request & { auth?: { extra?: { userId?: string } } }).auth?.extra?.userId;
+app.get("/epic/link", async (req: Request, res: Response) => {
+  const token = (req.query as Record<string, string | undefined>).t;
+  const userId = token ? await consumeLinkToken(token) : undefined;
   if (!userId) {
-    res.status(401).type("text/plain").send("Unauthenticated.");
+    res
+      .status(401)
+      .type("text/html")
+      .send(
+        `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+          `<title>Link expired</title><body style="font:16px/1.6 -apple-system,system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1.25rem">` +
+          `<h1 style="font-size:1.3rem">This link is not valid</h1>` +
+          `<p>Link URLs are single-use and expire after 15 minutes. Ask for a fresh one by running the <code>mychart_link</code> tool again.</p></body>`,
+      );
     return;
   }
   try {

@@ -1,9 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { config } from "../config.js";
 import { fhirGet, fhirGetBinary } from "../epic.js";
 import { EpicLinkRequiredError, getEpicSession } from "../epic-session.js";
-import { deleteEpicLink, getEpicLink } from "../store.js";
+import { deleteEpicLink, getEpicLink, saveLinkToken } from "../store.js";
 import { guard, json, ok, userIdFrom, type ToolResult } from "./util.js";
 
 /**
@@ -83,8 +84,7 @@ export function registerMyChartTools(server: McpServer): void {
         return json({
           linked: false,
           environment: config.epic.environment,
-          linkUrl: `${config.baseUrl}/epic/link`,
-          hint: "Open linkUrl in a browser and sign in to MyChart.",
+          hint: "Run the mychart_link tool to get a one-time sign-in URL.",
         });
       }
       // Actually exercise the credential. "A row exists" is not the same as
@@ -107,6 +107,33 @@ export function registerMyChartTools(server: McpServer): void {
         credentialWorks,
         problem,
       });
+    }),
+  );
+
+  server.registerTool(
+    "mychart_link",
+    {
+      title: "Get a MyChart sign-in link",
+      description:
+        "Produce a one-time URL for connecting a MyChart account. Give the URL to the person so " +
+        "they can open it in a browser and sign in to MyChart. The URL is single-use and expires " +
+        "in 15 minutes; ask for a new one rather than reusing an old one.",
+      inputSchema: {},
+      annotations: { readOnlyHint: false, idempotentHint: false },
+    },
+    guard(async (_args, extra) => {
+      const userId = userIdFrom(extra);
+      // A browser carries no MCP bearer token, so identity rides in this
+      // single-use token instead. That keeps the Epic refresh token bound to a
+      // known user without making the browser authenticate.
+      const token = randomUUID();
+      await saveLinkToken(token, userId);
+      const url = `${config.baseUrl}/epic/link?t=${token}`;
+      return ok(
+        `Open this link in a browser and sign in to MyChart:\n\n${url}\n\n` +
+          `It works once and expires in 15 minutes. Environment: ${config.epic.environment}.`,
+        { linkUrl: url, environment: config.epic.environment, expiresInMinutes: 15 },
+      );
     }),
   );
 
